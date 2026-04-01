@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WasteGuard — Waste Throwing Detection System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:       #0d0d0d;
+            --surface:  #141414;
+            --surface2: #1c1c1c;
+            --border:   rgba(255,255,255,0.08);
+            --border2:  rgba(255,255,255,0.15);
+            --p1:       #ff3cac;
+            --p2:       #784ba0;
+            --p3:       #ff6b35;
+            --grad:     linear-gradient(135deg, #ff3cac, #784ba0, #ff6b35);
+            --grad2:    linear-gradient(135deg, #f7971e, #ffd200);
+            --grad3:    linear-gradient(135deg, #11998e, #38ef7d);
+            --danger:   #ff3cac;
+            --success:  #38ef7d;
+            --warn:     #ffd200;
+            --text:     #f0f0f0;
+            --muted:    rgba(240,240,240,0.4);
+            --r:        16px;
+        }
+
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ─── TOPBAR ─── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            height: 64px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 200;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-mark {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--grad);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            flex-shrink: 0;
+            box-shadow: 0 0 18px rgba(255,60,172,0.4);
+        }
+
+        .logo-name {
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .logo-name em {
+            font-style: normal;
+            background: var(--grad);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+        .chip {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+
+        .chip-model {
+            background: rgba(255,255,255,0.06);
+            color: var(--text);
+            border: 1px solid var(--border2);
+        }
+
+        .chip-live {
+            background: rgba(255,60,172,0.12);
+            color: var(--p1);
+            border: 1px solid rgba(255,60,172,0.3);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chip-live::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--p1);
+            animation: blink 1.2s infinite;
+            box-shadow: 0 0 6px var(--p1);
+        }
+
+        @keyframes blink {
+            0%,100% { opacity:1; }
+            50%      { opacity:0.2; }
+        }
+
+        /* ─── LAYOUT ─── */
+        .page {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            min-height: calc(100vh - 64px);
+        }
+
+        /* ─── SIDEBAR ─── */
+        .sidebar {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 32px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 36px;
+        }
+
+        .sidebar-section h3 {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--muted);
+            margin-bottom: 14px;
+        }
+
+        .cap-list { display: flex; flex-direction: column; gap: 10px; }
+
+        .cap-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 14px;
+            transition: border-color 0.2s, transform 0.2s;
+            cursor: default;
+        }
+
+        .cap-card:hover {
+            border-color: var(--border2);
+            transform: translateX(3px);
+        }
+
+        .cap-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            flex-shrink: 0;
+        }
+
+        .cap-icon.person { background: linear-gradient(135deg,rgba(255,60,172,0.2),rgba(120,75,160,0.2)); }
+        .cap-icon.waste  { background: linear-gradient(135deg,rgba(247,151,30,0.2),rgba(255,210,0,0.2)); }
+        .cap-icon.plate  { background: linear-gradient(135deg,rgba(17,153,142,0.2),rgba(56,239,125,0.2)); }
+
+        .cap-info .cap-title { font-size: 0.85rem; font-weight: 600; margin-bottom: 3px; }
+        .cap-info .cap-desc  { font-size: 0.74rem; color: var(--muted); line-height: 1.5; }
+
+        .steps { display: flex; flex-direction: column; }
+
+        .step { display: flex; gap: 14px; position: relative; }
+
+        .step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 14px;
+            top: 32px;
+            bottom: -6px;
+            width: 1px;
+            background: var(--border);
+        }
+
+        .step-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--grad);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+            margin-top: 2px;
+            box-shadow: 0 0 10px rgba(255,60,172,0.3);
+        }
+
+        .step-body { padding-bottom: 22px; }
+        .step-body .step-title { font-size: 0.83rem; font-weight: 600; margin-bottom: 2px; }
+        .step-body .step-sub   { font-size: 0.74rem; color: var(--muted); }
+
+        /* ─── MAIN CONTENT ─── */
+        .content {
+            padding: 40px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            overflow-y: auto;
+        }
+
+        .content-header h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+            background: var(--grad);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .content-header p { font-size: 0.88rem; color: var(--muted); }
+
+        /* ─── UPLOAD BOX ─── */
+        .upload-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-box::before {
+            content: '';
+            position: absolute;
+            top: -60px; right: -60px;
+            width: 200px; height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,60,172,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .box-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--muted);
+            margin-bottom: 16px;
+        }
+
+        .drop-zone {
+            position: relative;
+            border: 1.5px dashed rgba(255,60,172,0.25);
+            border-radius: var(--r);
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s;
+            background: rgba(255,60,172,0.02);
+            margin-bottom: 14px;
+        }
+
+        .drop-zone:hover, .drop-zone.active {
+            border-color: var(--p1);
+            background: rgba(255,60,172,0.06);
+            box-shadow: 0 0 30px rgba(255,60,172,0.08) inset;
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .dz-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            background: var(--grad);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            margin: 0 auto 16px;
+            box-shadow: 0 8px 24px rgba(255,60,172,0.3);
+        }
+
+        .dz-title { font-size: 0.95rem; font-weight: 500; margin-bottom: 5px; }
+        .dz-title span {
+            background: var(--grad);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+        .dz-hint { font-size: 0.76rem; color: var(--muted); }
+
+        .file-pill {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,60,172,0.08);
+            border: 1px solid rgba(255,60,172,0.2);
+            border-radius: 10px;
+            padding: 9px 14px;
+            font-size: 0.8rem;
+            color: var(--p1);
+            margin-bottom: 14px;
+        }
+
+        .file-pill.show { display: flex; }
+
+        .btn-run {
+            width: 100%;
+            padding: 14px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--grad);
+            color: #fff;
+            border: none;
+            border-radius: var(--r);
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 6px 24px rgba(255,60,172,0.35);
+            letter-spacing: 0.3px;
+        }
+
+        .btn-run:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(255,60,172,0.45);
+        }
+
+        .btn-run:active { transform: translateY(0); }
+
+        .btn-run:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ─── RESULTS ─── */
+        .results-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 28px;
+            animation: fadeUp 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .results-box::before {
+            content: '';
+            position: absolute;
+            bottom: -80px; left: -80px;
+            width: 240px; height: 240px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,107,53,0.07) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(16px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+
+        .results-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .results-top h3 { font-size: 1rem; font-weight: 700; }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+        }
+
+        .status-badge::before {
+            content: '';
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 6px currentColor;
+        }
+
+        .status-badge.alert {
+            background: rgba(255,60,172,0.12);
+            color: var(--danger);
+            border: 1px solid rgba(255,60,172,0.3);
+        }
+
+        .status-badge.clear {
+            background: rgba(56,239,125,0.1);
+            color: var(--success);
+            border: 1px solid rgba(56,239,125,0.3);
+        }
+
+        /* Image comparison */
+        .img-compare {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .img-panel {
+            border-radius: var(--r);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+        }
+
+        .img-panel-label {
+            padding: 8px 12px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .img-panel-label .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+        }
+
+        .img-panel img {
+            width: 100%;
+            display: block;
+            object-fit: cover;
+            aspect-ratio: 4/3;
+        }
+
+        /* Detection breakdown */
+        .detection-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .det-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 16px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: border-color 0.2s;
+        }
+
+        .det-card:hover { border-color: var(--border2); }
+
+        .det-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .det-icon { font-size: 20px; }
+
+        .det-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+
+        .det-dot.found { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+        .det-dot.none  { background: rgba(240,240,240,0.2); }
+
+        .det-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--muted);
+        }
+
+        .det-value { font-size: 0.9rem; font-weight: 600; }
+
+        /* Summary row */
+        .summary-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .sum-box {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sum-box::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 3px;
+            height: 100%;
+            background: var(--grad);
+            border-radius: 3px 0 0 3px;
+        }
+
+        .sum-box .s-lbl {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .sum-box .s-val { font-size: 1.3rem; font-weight: 700; }
+
+        /* Flash */
+        .flash-msg {
+            background: rgba(255,60,172,0.08);
+            border: 1px solid rgba(255,60,172,0.25);
+            color: #ff8fd4;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 0.84rem;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 22px;
+            font-size: 0.72rem;
+            color: rgba(240,240,240,0.18);
+            border-top: 1px solid var(--border);
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .page { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .content { padding: 28px 20px; }
+        }
+
+        @media (max-width: 520px) {
+            .img-compare { grid-template-columns: 1fr; }
+            .detection-grid { grid-template-columns: 1fr 1fr; }
+            .topbar { padding: 0 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Topbar ── -->
+<header class="topbar">
+    <div class="logo">
+        <div class="logo-mark">🎯</div>
+        <div class="logo-name">Waste<em>Guard</em></div>
+    </div>
+    <div class="topbar-right">
+        <div class="chip chip-live">Live</div>
+        <div class="chip chip-model">YOLOv8</div>
+    </div>
+</header>
+
+<!-- ── Page grid ── -->
+<div class="page">
+
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar">
+
+        <div class="sidebar-section">
+            <h3>Detection Targets</h3>
+            <div class="cap-list">
+                <div class="cap-card">
+                    <div class="cap-icon person">🧍</div>
+                    <div class="cap-info">
+                        <div class="cap-title">Person</div>
+                        <div class="cap-desc">Identifies the individual throwing waste from a vehicle or on foot.</div>
+                    </div>
+                </div>
+                <div class="cap-card">
+                    <div class="cap-icon waste">🗑️</div>
+                    <div class="cap-info">
+                        <div class="cap-title">Waste / Baggage</div>
+                        <div class="cap-desc">Detects the thrown waste item or baggage in the scene.</div>
+                    </div>
+                </div>
+                <div class="cap-card">
+                    <div class="cap-icon plate">🚗</div>
+                    <div class="cap-info">
+                        <div class="cap-title">Number Plate</div>
+                        <div class="cap-desc">Captures the vehicle number plate for identification and reporting.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3>How It Works</h3>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-body">
+                        <div class="step-title">Upload Image</div>
+                        <div class="step-sub">Provide a CCTV or camera frame (JPG/PNG).</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-body">
+                        <div class="step-title">AI Analysis</div>
+                        <div class="step-sub">YOLOv8 scans for person, waste, and plate.</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-body">
+                        <div class="step-title">View Results</div>
+                        <div class="step-sub">Annotated output with bounding boxes and status.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </aside>
+
+    <!-- ── Main content ── -->
+    <main class="content">
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for msg in messages %}
+                    <div class="flash-msg">⚠ {{ msg }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content-header">
+            <h2>Waste Throwing Detection</h2>
+            <p>Upload a surveillance image to detect the offender, waste baggage, and vehicle number plate.</p>
+        </div>
+
+        <!-- Upload -->
+        <div class="upload-box">
+            <div class="box-label">Upload Image</div>
+            <form method="post" enctype="multipart/form-data" id="uploadForm">
+                <div class="drop-zone" id="dropZone">
+                    <input type="file" name="file" id="fileInput" accept=".jpg,.jpeg,.png" required>
+                    <div class="dz-icon">📷</div>
+                    <div class="dz-title">Drop image here or <span>browse files</span></div>
+                    <div class="dz-hint">JPG, JPEG, PNG &nbsp;·&nbsp; Max 10 MB</div>
+                </div>
+                <div class="file-pill" id="filePill">
+                    <span>📎</span>
+                    <span id="fileName"></span>
+                </div>
+                <button type="submit" class="btn-run" id="submitBtn">Run Detection</button>
+            </form>
+        </div>
+
+        <!-- Results -->
+        {% if report %}
+        <div class="results-box">
+            <div class="results-top">
+                <h3>Analysis Results</h3>
+                <div class="status-badge {% if report.incident_status == 'Incident Detected' %}alert{% else %}clear{% endif %}">
+                    {{ report.incident_status }}
+                </div>
+            </div>
+
+            <!-- Image comparison -->
+            <div class="img-compare">
+                <div class="img-panel">
+                    <div class="img-panel-label">
+                        <span class="dot" style="background:#555;"></span>
+                        Original Frame
+                    </div>
+                    <img src="{{ report.input_url }}" alt="Input">
+                </div>
+                <div class="img-panel">
+                    <div class="img-panel-label">
+                        <span class="dot" style="background:#ff3cac;"></span>
+                        Annotated Output
+                    </div>
+                    <img src="{{ report.output_url }}" alt="Output">
+                </div>
+            </div>
+
+            <!-- Detection breakdown -->
+            <div class="detection-grid">
+                <div class="det-card">
+                    <div class="det-card-top">
+                        <span class="det-icon">🧍</span>
+                        <span class="det-dot {% if report.person.found %}found{% else %}none{% endif %}"></span>
+                    </div>
+                    <div class="det-label">Person</div>
+                    <div class="det-value">{% if report.person.found %}Detected{% else %}Not Found{% endif %}</div>
+                </div>
+                <div class="det-card">
+                    <div class="det-card-top">
+                        <span class="det-icon">🗑️</span>
+                        <span class="det-dot {% if report.waste.found %}found{% else %}none{% endif %}"></span>
+                    </div>
+                    <div class="det-label">Waste / Baggage</div>
+                    <div class="det-value">{% if report.waste.found %}Detected{% else %}Not Found{% endif %}</div>
+                </div>
+                <div class="det-card">
+                    <div class="det-card-top">
+                        <span class="det-icon">🚗</span>
+                        <span class="det-dot {% if report.plate.found %}found{% else %}none{% endif %}"></span>
+                    </div>
+                    <div class="det-label">Vehicle / Plate</div>
+                    <div class="det-value">{% if report.plate.found %}Detected{% else %}Not Found{% endif %}</div>
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="summary-row">
+                <div class="sum-box">
+                    <div class="s-lbl">Total Objects</div>
+                    <div class="s-val">{{ report.total_objects }}</div>
+                </div>
+                <div class="sum-box">
+                    <div class="s-lbl">Incident Status</div>
+                    <div class="s-val" style="font-size:0.88rem; font-weight:600; padding-top:2px;">{{ report.incident_status }}</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </main>
+</div>
+
+<footer>
+    WasteGuard &mdash; Waste Throwing Detection System &copy; 2025 &nbsp;·&nbsp; Powered by YOLOv8
+</footer>
+
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const filePill  = document.getElementById('filePill');
+    const fileName  = document.getElementById('fileName');
+    const dropZone  = document.getElementById('dropZone');
+    const submitBtn = document.getElementById('submitBtn');
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files[0]) {
+            fileName.textContent = fileInput.files[0].name;
+            filePill.classList.add('show');
+        }
+    });
+
+    ['dragover','dragenter'].forEach(e => {
+        dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.add('active'); });
+    });
+    ['dragleave','drop'].forEach(e => {
+        dropZone.addEventListener(e, () => dropZone.classList.remove('active'));
+    });
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        if (e.dataTransfer.files[0]) {
+            fileInput.files = e.dataTransfer.files;
+            fileName.textContent = e.dataTransfer.files[0].name;
+            filePill.classList.add('show');
+        }
+    });
+
+    document.getElementById('uploadForm').addEventListener('submit', () => {
+        submitBtn.textContent = 'Analyzing…';
+        submitBtn.disabled = true;
+    });
+</script>
+
+</body>
+</html>
